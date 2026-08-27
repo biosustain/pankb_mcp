@@ -23,7 +23,6 @@ for module in ['mcp', 'httpx', 'httpcore', 'matplotlib', 'pymongo', 'azure', 'fa
 
 # from app.prompts.templates import mcp as templates_mcp
 # from app.resources.pankb import mcp as resources_mcp
-# from app.tools.analysis import mcp as analysis_mcp
 from app.tools.chart import mcp as chart_mcp
 from app.tools.navigation import mcp as navigation_mcp
 from app.tools.query import mcp as query_mcp
