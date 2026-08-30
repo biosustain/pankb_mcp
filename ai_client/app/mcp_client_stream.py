@@ -11,7 +11,6 @@ from openai import AsyncOpenAI
 from opentelemetry import context as otel_context
 from opentelemetry import trace
 
-
 _tracer = trace.get_tracer("pankb.agent")
 
 
@@ -117,11 +116,11 @@ class MCPClient:
                 # not just "12453 chars of something". Keep payloads small.
                 if result_type == "chart" and parsed_data:
                     span.set_attribute("tool.chart.title", parsed_data.get("title", ""))
-                    series = parsed_data.get("data", []) or []
+                    series = (parsed_data.get("data") or {}).get("series") or []
                     span.set_attribute("tool.chart.series_count", len(series))
                     span.set_attribute(
-                        "tool.chart.series_types",
-                        json.dumps([s.get("type", "?") for s in series][:20]),
+                        "tool.chart.series_names",
+                        json.dumps([s.get("name", "?") for s in series][:20]),
                     )
                 elif result_type == "table" and parsed_data:
                     span.set_attribute("tool.table.title", parsed_data.get("title", ""))
