@@ -162,7 +162,7 @@ Genome isolation/environmental metadata.
 | Field | Type | Description |
 |-------|------|-------------|
 | genome_id | string | Links to genome_info |
-| country_standard | string | ISO country name |
+| country | string | Country of isolation |
 | isolation_source | string | Source environment (Soil, Blood, etc.) |
 
 ### 4. pankb_gene_annotations

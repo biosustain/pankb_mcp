@@ -189,7 +189,7 @@ def list_genomes(
     if country or isolation_source:
         isolation_filter = {}
         if country:
-            isolation_filter["isolation.country_standard"] = {"$regex": f"^{country}$", "$options": "i"}
+            isolation_filter["isolation.country"] = {"$regex": f"^{country}$", "$options": "i"}
         if isolation_source:
             isolation_filter["isolation.isolation_source"] = {"$regex": f"^{isolation_source}$", "$options": "i"}
         pipeline.append({"$match": isolation_filter})
@@ -213,7 +213,7 @@ def list_genomes(
             "gc_content": round(doc.get("gc_content", 0) * 100, 2),
             "genome_len": doc.get("genome_len", 0),
             "phylo_group": doc.get("phylo_group", "N/A"),
-            "country": isolation.get("country_standard", "N/A"),
+            "country": isolation.get("country", "N/A"),
             "isolation_source": isolation.get("isolation_source", "N/A")
         })
 
