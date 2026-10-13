@@ -24,7 +24,6 @@ services:
       nofile:
         soft: 65536
         hard: 65536
-    restart: no
 
   ai-client:
     container_name: ai-client
@@ -54,7 +53,6 @@ services:
     depends_on:
       - mcp-server
       - phoenix
-    restart: no
 
   phoenix:
     container_name: phoenix
