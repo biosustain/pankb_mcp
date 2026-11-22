@@ -143,7 +143,7 @@ async def main() -> int:
     mcp_url = os.getenv("MCP_SERVER_URL")
     mcp_key = os.getenv("MCP_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    model = os.getenv("OPENAI_MODEL", "gpt-6-luna")
     phoenix_endpoint = os.getenv("PHOENIX_COLLECTOR_ENDPOINT")
 
     if not (mcp_url and mcp_key and openai_key and phoenix_endpoint):

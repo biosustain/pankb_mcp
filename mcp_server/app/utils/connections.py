@@ -105,7 +105,7 @@ class RAGClient:
     """
     RAG Client - provides API clients for vector search.
     Lazy initialization: only connects when first accessed.
-    Imports cohere/voyageai only when needed to avoid startup errors.
+    Imports voyageai only when needed to avoid startup errors.
     """
 
     _instance: Optional['RAGClient'] = None
@@ -113,7 +113,6 @@ class RAGClient:
 
     # API clients (typed as Any to avoid import at module level)
     _voyage_client = None
-    _cohere_client = None
     _collection: Optional[Collection] = None
 
     def __new__(cls):
@@ -127,18 +126,14 @@ class RAGClient:
             return
 
         # Lazy import to avoid ModuleNotFoundError at server startup
-        import cohere
         import voyageai
 
         if not Config.VECTOR_DB_URI:
             raise ValueError("MONGODB_VECTOR_CONN_STRING not configured")
         if not Config.VOYAGE_API_KEY:
             raise ValueError("VOYAGE_API_KEY not configured")
-        if not Config.COHERE_API_KEY:
-            raise ValueError("COHERE_API_KEY not configured")
 
         self._voyage_client = voyageai.Client(api_key=Config.VOYAGE_API_KEY)
-        self._cohere_client = cohere.Client(api_key=Config.COHERE_API_KEY)
 
         client = MongoClient(Config.VECTOR_DB_URI)
         db = client[Config.VECTOR_DB_NAME]
@@ -149,15 +144,9 @@ class RAGClient:
 
     @property
     def voyage(self):
-        """VoyageAI client for embeddings"""
+        """VoyageAI client for embeddings and reranking"""
         self._ensure_initialized()
         return self._voyage_client
-
-    @property
-    def cohere(self):
-        """Cohere client for reranking"""
-        self._ensure_initialized()
-        return self._cohere_client
 
     @property
     def collection(self) -> Collection:

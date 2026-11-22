@@ -33,7 +33,7 @@ class MCPClient:
         self,
         mcp_server_url: str,
         openai_client: AsyncOpenAI,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-6-luna",
         auth=None,
         system_prompt: str | None = None,
         prompt_version: str = "unknown",
@@ -202,6 +202,7 @@ class MCPClient:
                         tools=self.tools_cache or None,
                         store=False,
                         stream=True,
+                        reasoning={"effort": "none"},
                         temperature=0,  # Deterministic output for strict instruction following
                     )
 

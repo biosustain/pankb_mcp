@@ -12,7 +12,7 @@ from psycopg2.extras import Json, RealDictCursor
 def generate_conversation_title(
     first_message: str,
     client: OpenAI = None,
-    model: str = "gpt-4o-mini"
+    model: str = "gpt-6-luna"
 ) -> str:
     """
     Use LLM to generate a concise conversation title from the first user message.
@@ -42,7 +42,8 @@ def generate_conversation_title(
                 },
                 {"role": "user", "content": first_message}
             ],
-            max_tokens=30,
+            max_completion_tokens=30,
+            reasoning_effort="none",
             temperature=0.3,
         )
         title = response.choices[0].message.content.strip()

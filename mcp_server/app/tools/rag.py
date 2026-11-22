@@ -14,13 +14,22 @@ logger = logging.getLogger(__name__)
 
 mcp = FastMCP(name="RAGTools")
 
+EMBEDDING_MODEL = "voyage-4-large"
+EMBEDDING_DIMENSIONS = 1024
+RERANK_MODEL = "rerank-2.5"
+RERANK_SCORE_THRESHOLD = 0.45
+VECTOR_SEARCH_K = 30
+RERANK_TOP_K = 20
+
 
 def _get_embedding(text: str) -> list[float]:
     """Get embedding vector for text using VoyageAI"""
     client = get_rag_client()
     result = client.voyage.embed(
         texts=[text],
-        model="voyage-large-2-instruct"
+        model=EMBEDDING_MODEL,
+        input_type="query",
+        output_dimension=EMBEDDING_DIMENSIONS,
     )
     return result.embeddings[0]
 
@@ -51,19 +60,19 @@ def _vector_search(query_embedding: list[float], k: int = 30) -> list[dict]:
     return list(client.collection.aggregate(pipeline))
 
 
-def _rerank_documents(query: str, documents: list[dict], top_n: int = 20) -> list[dict]:
-    """Rerank documents using Cohere Rerank"""
+def _rerank_documents(query: str, documents: list[dict], top_k: int = RERANK_TOP_K) -> list[dict]:
+    """Rerank documents using Voyage Rerank"""
     if not documents:
         return []
 
     client = get_rag_client()
     doc_texts = [doc['textContent'] for doc in documents]
 
-    rerank_response = client.cohere.rerank(
-        model="rerank-english-v3.0",
+    rerank_response = client.voyage.rerank(
         query=query,
         documents=doc_texts,
-        top_n=top_n
+        model=RERANK_MODEL,
+        top_k=top_k,
     )
 
     reranked_docs = []
@@ -75,24 +84,24 @@ def _rerank_documents(query: str, documents: list[dict], top_n: int = 20) -> lis
     return reranked_docs
 
 
-def _filter_documents(documents: list[dict], threshold: float = 0.5) -> list[dict]:
+def _filter_documents(documents: list[dict], threshold: float = RERANK_SCORE_THRESHOLD) -> list[dict]:
     """Filter documents below relevance threshold"""
     return [doc for doc in documents if doc.get('relevance_score', 0) >= threshold]
 
 
-def _search_documents(query: str, top_k: int = 5) -> list[dict]:
+def _search_documents(query: str, top_k: int = RERANK_TOP_K) -> list[dict]:
     """
     Complete RAG retrieval pipeline:
     1. Embed query
     2. Vector search (k=30)
-    3. Rerank (top_n=20)
-    4. Filter by relevance (threshold=0.5)
+    3. Rerank (top_k=20)
+    4. Filter by relevance (threshold=0.45)
     5. Return top_k documents
     """
     query_embedding = _get_embedding(query)
-    initial_docs = _vector_search(query_embedding, k=30)
-    reranked_docs = _rerank_documents(query, initial_docs, top_n=20)
-    filtered_docs = _filter_documents(reranked_docs, threshold=0.5)
+    initial_docs = _vector_search(query_embedding, k=VECTOR_SEARCH_K)
+    reranked_docs = _rerank_documents(query, initial_docs)
+    filtered_docs = _filter_documents(reranked_docs)
     return filtered_docs[:top_k]
 
 
@@ -114,7 +123,7 @@ def _format_as_markdown(docs: list[dict]) -> str:
 
 
 @mcp.tool()
-def search_pangenome_literature(query: str, top_k: int = 5) -> str:
+def search_pangenome_literature(query: str, top_k: int = RERANK_TOP_K) -> str:
     """
     Search PanKB's scientific knowledge base about microbial pangenomics.
 
@@ -131,7 +140,7 @@ def search_pangenome_literature(query: str, top_k: int = 5) -> str:
 
     Args:
         query: Search query (e.g., "why is pangenome analysis important", "what is core genome")
-        top_k: Number of documents to return (default: 5)
+        top_k: Maximum number of documents to return (default: 20, the most the pipeline yields)
 
     Returns:
         Relevant scientific documents with title, content, and source URL

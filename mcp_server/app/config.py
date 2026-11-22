@@ -36,12 +36,11 @@ class Config:
     # MongoDB - Vector store for RAG
     VECTOR_DB_URI = os.getenv("MONGODB_VECTOR_CONN_STRING")
     VECTOR_DB_NAME = "pankb_llm"
-    VECTOR_COLLECTION = "pankb_vector_store"
+    VECTOR_COLLECTION = "pankb_vector_store_v2" 
 
     # Azure Blob Storage
     AZURE_BLOB_BASE_URL = os.getenv("AZURE_BLOB_BASE_URL")
 
     # API Keys for RAG
     VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
-    COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 

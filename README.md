@@ -34,7 +34,7 @@ Together they enable:
 ## Stack
 
 Python · FastMCP · OpenAI Responses API · Streamlit · OpenID Connect (Google)
-· PostgreSQL · MongoDB · Plotly · VoyageAI embeddings · Cohere reranking ·
+· PostgreSQL · MongoDB · Plotly · VoyageAI embeddings + reranking ·
 Arize Phoenix (tracing + evaluation) · OpenInference / OpenTelemetry · Docker
 Compose · GitHub Actions · uv
 
@@ -92,7 +92,7 @@ Compose · GitHub Actions · uv
 
 | Tool | Description |
 |------|-------------|
-| search_pangenome_literature | Search pangenome research papers via RAG (VoyageAI embedding + Cohere reranking) over a curated bibliome of 1011 open-access papers |
+| search_pangenome_literature | Search pangenome research papers via RAG (VoyageAI voyage-4-large embedding + rerank-2.5 reranking) over a curated bibliome of 1011 open-access papers |
 
 
 ## Connection
