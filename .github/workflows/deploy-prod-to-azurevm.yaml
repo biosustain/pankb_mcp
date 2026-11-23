@@ -22,8 +22,8 @@ jobs:
           key: ${{ secrets.MCP_PROD_PRIVATE_SSH_KEY }}
           source: "."
           target: "~/pankb-mcp"
-  
-      - name: Create the .env file and (re-)start containers over SSH
+
+      - name: Create the .env files and (re-)start containers over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.MCP_PROD_HOST_VNET }}
@@ -33,25 +33,46 @@ jobs:
           script: |
             cd ~/pankb-mcp
 
-            # Create mcp_server/.env
-            cat > mcp_server/.env << EOF
-            MCP_API_KEY=${{secrets.MCP_API_KEY}}
-            MONGODB_NAME=${{secrets.MONGODB_NAME}}
-            MONGODB_PANKB_CONN_STRING=${{secrets.MONGODB_PANKB_CONN_STRING}}
-            MONGODB_VECTOR_CONN_STRING=${{secrets.MONGODB_VECTOR_CONN_STRING}}
+            cat > mcp_server/.env << 'EOF'
+            ENV='production'
+            MCP_API_KEY='${{ secrets.MCP_API_KEY }}'
+            MONGODB_PANKB_CONN_STRING='${{ secrets.MONGODB_PANKB_CONN_STRING }}'
+            MONGODB_VECTOR_CONN_STRING='${{ secrets.MONGODB_VECTOR_CONN_STRING }}'
+            AZURE_BLOB_BASE_URL='${{ secrets.AZURE_BLOB_BASE_URL }}'
+            VOYAGE_API_KEY='${{ secrets.VOYAGE_API_KEY }}'
+            REQUIRE_AUTH=false
             EOF
-            echo "=== mcp_server/.env ==="
-            cat mcp_server/.env
 
-            # Create ai_client/.env
-            cat > ai_client/.env << EOF
-            OPENAI_API_KEY=${{secrets.OPENAI_API_KEY}}
-            MCP_API_KEY=${{secrets.MCP_API_KEY}}
-            MCP_SERVER_URL=${{secrets.MCP_SERVER_URL}}
+            cat > ai_client/.env << 'EOF'
+            OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}'
+            MCP_API_KEY='${{ secrets.MCP_API_KEY }}'
+            MCP_SERVER_URL='http://mcp-server:8000/mcp'
+            POSTGRES_HOST='sqldb'
+            POSTGRES_PORT='5432'
+            POSTGRES_DB='pankb_users'
+            POSTGRES_USER='sql_user'
+            POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}'
             EOF
-            echo "=== ai_client/.env ==="
-            cat ai_client/.env
 
-            docker compose down
+            cat > sqldb/.env << 'EOF'
+            POSTGRES_USER='postgres'
+            POSTGRES_PASSWORD='${{ secrets.POSTGRES_ADMIN_PASSWORD }}'
+            POSTGRES_DB='pankb_users'
+            EOF
+
+            mkdir -p ai_client/app/.streamlit
+            cat > ai_client/app/.streamlit/secrets.toml << 'EOF'
+            [auth]
+            redirect_uri = '${{ secrets.AUTH_REDIRECT_URI }}'
+            cookie_secret = '${{ secrets.AUTH_COOKIE_SECRET }}'
+            cookie_expiry_days = 30
+
+            [auth.google]
+            client_id = '${{ secrets.GOOGLE_CLIENT_ID }}'
+            client_secret = '${{ secrets.GOOGLE_CLIENT_SECRET }}'
+            server_metadata_url = 'https://accounts.google.com/.well-known/openid-configuration'
+            EOF
+
             docker compose up -d --build --force-recreate --remove-orphans
-            docker system prune --all --force
+            docker compose -f sqldb/docker-compose.yaml up -d
+            docker image prune --force --all
