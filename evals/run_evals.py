@@ -39,6 +39,7 @@ sys.path.insert(0, str(AI_CLIENT_APP))
 # user traffic. Must be set BEFORE init_tracing() / MCPClient import.
 os.environ.setdefault("PHOENIX_PROJECT_NAME", "pankb-eval")
 
+from config import MODEL  # noqa: E402
 from mcp_client_stream import MCPClient  # noqa: E402
 from phoenix.client import AsyncClient as PhoenixAsyncClient  # noqa: E402
 from phoenix.client.experiments import async_run_experiment  # noqa: E402
@@ -143,7 +144,7 @@ async def main() -> int:
     mcp_url = os.getenv("MCP_SERVER_URL")
     mcp_key = os.getenv("MCP_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
-    model = os.getenv("OPENAI_MODEL", "gpt-6-luna")
+    model = MODEL
     phoenix_endpoint = os.getenv("PHOENIX_COLLECTOR_ENDPOINT")
 
     if not (mcp_url and mcp_key and openai_key and phoenix_endpoint):

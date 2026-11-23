@@ -5,6 +5,7 @@ import os
 from contextlib import contextmanager
 
 import psycopg2
+from config import MODEL
 from openai import OpenAI
 from psycopg2.extras import Json, RealDictCursor
 
@@ -12,7 +13,7 @@ from psycopg2.extras import Json, RealDictCursor
 def generate_conversation_title(
     first_message: str,
     client: OpenAI = None,
-    model: str = "gpt-6-luna"
+    model: str = MODEL
 ) -> str:
     """
     Use LLM to generate a concise conversation title from the first user message.

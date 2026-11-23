@@ -111,12 +111,25 @@ Compose · GitHub Actions · uv
    }
    ```
 
+## Configuration
+
+Behaviour settings are git-tracked and are not read from environment
+variables; change them with a commit:
+
+- [`ai_client/app/config.py`](ai_client/app/config.py) — model, prompt
+  version, agent iteration cap, input/output limits, history turns.
+- [`mcp_server/app/config.py`](mcp_server/app/config.py) — RAG embedding and
+  rerank models, score threshold, retrieval sizes, collection names.
+
+`.env` holds only secrets and per-environment addresses (API keys, connection
+strings, Postgres settings, etc.).
+
 ## Prompt Versioning
 
 System prompts live as versioned modules under
-[`ai_client/app/prompts/`](ai_client/app/prompts/) (e.g. `v1.py`, `v2.py`).
-The active version is selected by the `PROMPT_VERSION` env var, with a
-fallback to `DEFAULT_VERSION` in the registry.
+[`ai_client/app/prompts/`](ai_client/app/prompts/).
+The active version is `PROMPT_VERSION` in
+[`ai_client/app/config.py`](ai_client/app/config.py).
 
 The resolved version is stamped on every `agent.chat` span and every
 Phoenix Experiment run.

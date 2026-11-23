@@ -3,43 +3,29 @@
 To add a new version:
   1. Copy prompts/vN.py to prompts/v{N+1}.py and edit.
   2. Add it to PROMPTS below.
-  3. Set PROMPT_VERSION in .env to switch (DEFAULT_VERSION is only a fallback).
+  3. Set PROMPT_VERSION in config.py to switch.
 
-Resolution order: PROMPT_VERSION env > DEFAULT_VERSION (with a logged warning).
+The active version comes only from config.py.
 """
-import logging
-import os
+from config import PROMPT_VERSION
 
-from . import v1
-
-logger = logging.getLogger(__name__)
-
-DEFAULT_VERSION = "v1"
+from . import v1, v2
 
 PROMPTS = {
     "v1": v1.SYSTEM_PROMPT,
+    "v2": v2.SYSTEM_PROMPT,
 }
 
 
 def get_prompt() -> tuple[str, str]:
-    """Return (resolved_version, prompt_text).
+    """Return (version, prompt_text) for config.PROMPT_VERSION.
 
-    The resolved version is also what gets stamped on agent.chat spans, so
-    Phoenix always shows what *actually* ran — not what was requested.
+    The version is also what gets stamped on agent.chat spans, so Phoenix
+    always shows which prompt ran.
     """
-    requested = os.getenv("PROMPT_VERSION") or ""
-    if requested in PROMPTS:
-        return requested, PROMPTS[requested]
-
-    if not requested:
-        logger.warning(
-            "PROMPT_VERSION env not set — falling back to DEFAULT_VERSION=%r",
-            DEFAULT_VERSION,
+    if PROMPT_VERSION not in PROMPTS:
+        raise ValueError(
+            f"config.PROMPT_VERSION={PROMPT_VERSION!r} is not registered "
+            f"(available: {sorted(PROMPTS)})"
         )
-    else:
-        logger.warning(
-            "PROMPT_VERSION=%r is not registered (available: %s) — "
-            "falling back to DEFAULT_VERSION=%r",
-            requested, sorted(PROMPTS), DEFAULT_VERSION,
-        )
-    return DEFAULT_VERSION, PROMPTS[DEFAULT_VERSION]
+    return PROMPT_VERSION, PROMPTS[PROMPT_VERSION]

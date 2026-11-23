@@ -8,6 +8,7 @@ import uuid
 from pathlib import Path
 
 import streamlit as st
+from config import MAX_INPUT_CHARS, MODEL
 from db import (
     generate_conversation_title,
     get_conversation,
@@ -34,7 +35,6 @@ init_tracing()
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL")
 MCP_API_KEY = os.getenv("MCP_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = os.getenv("OPENAI_MODEL", "gpt-6-luna")
 
 
 @st.cache_resource
@@ -257,7 +257,7 @@ async def process_chat(
 
 
 # User input
-if prompt := st.chat_input("What species are included in PanKB?"):
+if prompt := st.chat_input("What species are included in PanKB?", max_chars=MAX_INPUT_CHARS):
     display_prompt = prompt  # What user sees
     if st.session_state.get("literature_mode", False):
         user_prompt = f"[search_pangenome_literature] {prompt}"

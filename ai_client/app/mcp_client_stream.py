@@ -6,12 +6,19 @@ import json
 from dataclasses import dataclass
 from typing import AsyncGenerator
 
+from config import (
+    MAX_HISTORY_TURNS,
+    MAX_LLM_ITERATIONS,
+    MAX_OUTPUT_TOKENS,
+    MODEL,
+)
 from fastmcp import Client
 from openai import AsyncOpenAI
 from opentelemetry import context as otel_context
 from opentelemetry import trace
 
 _tracer = trace.get_tracer("pankb.agent")
+
 
 
 @dataclass
@@ -33,7 +40,7 @@ class MCPClient:
         self,
         mcp_server_url: str,
         openai_client: AsyncOpenAI,
-        model: str = "gpt-6-luna",
+        model: str = MODEL,
         auth=None,
         system_prompt: str | None = None,
         prompt_version: str = "unknown",
@@ -182,8 +189,7 @@ class MCPClient:
         final_output = ""
 
         try:
-            max_iterations = 5
-            for iteration in range(max_iterations):
+            for iteration in range(MAX_LLM_ITERATIONS):
                 iterations_used = iteration + 1
                 iter_span = _tracer.start_span(f"agent.iteration.{iteration}")
                 iter_span.set_attribute("openinference.span.kind", "CHAIN")
@@ -203,6 +209,7 @@ class MCPClient:
                         store=False,
                         stream=True,
                         reasoning={"effort": "none"},
+                        max_output_tokens=MAX_OUTPUT_TOKENS,
                         temperature=0,  # Deterministic output for strict instruction following
                     )
 
@@ -226,10 +233,9 @@ class MCPClient:
                                     "arguments": event.item.arguments
                                 })
 
-                        # Capture usage from response.completed event
-                        elif event.type == "response.completed":
-                            if hasattr(event, "response") and hasattr(event.response, "usage"):
-                                usage = event.response.usage
+                        elif event.type in ("response.completed", "response.incomplete"):
+                            usage = getattr(getattr(event, "response", None), "usage", None)
+                            if usage:
                                 usage_info = {
                                     "input_tokens": usage.input_tokens,
                                     "output_tokens": usage.output_tokens
@@ -350,7 +356,7 @@ class MCPClient:
         finally:
             agent_span.set_attribute("agent.iterations_used", iterations_used)
             agent_span.set_attribute("agent.total_tool_calls", total_tool_calls)
-            agent_span.set_attribute("agent.hit_iteration_cap", iterations_used >= 5)
+            agent_span.set_attribute("agent.hit_iteration_cap", iterations_used >= MAX_LLM_ITERATIONS)
             agent_span.set_attribute("llm.token_count.prompt", total_tokens_in)
             agent_span.set_attribute("llm.token_count.completion", total_tokens_out)
             if final_output:
@@ -360,8 +366,12 @@ class MCPClient:
 
     def _filter_messages_for_api(self) -> list[dict]:
         """
-        Filter messages to only include items valid for Responses API input.
-        Removes UI-only marker messages (role="tool").
+        Build the Responses API input from self.messages.
+
+        Applies a sliding window of the last MAX_HISTORY_TURNS user turns. A turn is one user
+        message plus everything it triggered (tool calls, tool outputs, the
+        assistant reply), and turns are dropped whole, so a function_call is
+        never separated from its function_call_output.
         """
         valid_items = []
         for msg in self.messages:
@@ -374,4 +384,12 @@ class MCPClient:
             # Standard message format: user, assistant, system
             elif msg.get("role") in ("user", "assistant", "system"):
                 valid_items.append(msg)
-        return valid_items
+
+        # Group into turns, each starting at a user message.
+        turns: list[list[dict]] = []
+        for item in valid_items:
+            if item.get("role") == "user" or not turns:
+                turns.append([])
+            turns[-1].append(item)
+
+        return [item for turn in turns[-MAX_HISTORY_TURNS:] for item in turn]
