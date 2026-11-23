@@ -7,6 +7,7 @@ Returns documents only - answer generation is handled by the AI client.
 import json
 import logging
 
+from app.config import Config
 from app.utils.connections import get_rag_client
 from fastmcp import FastMCP
 
@@ -14,27 +15,20 @@ logger = logging.getLogger(__name__)
 
 mcp = FastMCP(name="RAGTools")
 
-EMBEDDING_MODEL = "voyage-4-large"
-EMBEDDING_DIMENSIONS = 1024
-RERANK_MODEL = "rerank-2.5"
-RERANK_SCORE_THRESHOLD = 0.45
-VECTOR_SEARCH_K = 30
-RERANK_TOP_K = 20
-
 
 def _get_embedding(text: str) -> list[float]:
     """Get embedding vector for text using VoyageAI"""
     client = get_rag_client()
     result = client.voyage.embed(
         texts=[text],
-        model=EMBEDDING_MODEL,
+        model=Config.EMBEDDING_MODEL,
         input_type="query",
-        output_dimension=EMBEDDING_DIMENSIONS,
+        output_dimension=Config.EMBEDDING_DIMENSIONS,
     )
     return result.embeddings[0]
 
 
-def _vector_search(query_embedding: list[float], k: int = 30) -> list[dict]:
+def _vector_search(query_embedding: list[float], k: int = Config.VECTOR_SEARCH_K) -> list[dict]:
     """Vector similarity search in MongoDB Cosmos DB"""
     client = get_rag_client()
     pipeline = [
@@ -60,7 +54,7 @@ def _vector_search(query_embedding: list[float], k: int = 30) -> list[dict]:
     return list(client.collection.aggregate(pipeline))
 
 
-def _rerank_documents(query: str, documents: list[dict], top_k: int = RERANK_TOP_K) -> list[dict]:
+def _rerank_documents(query: str, documents: list[dict], top_k: int = Config.RERANK_TOP_K) -> list[dict]:
     """Rerank documents using Voyage Rerank"""
     if not documents:
         return []
@@ -71,7 +65,7 @@ def _rerank_documents(query: str, documents: list[dict], top_k: int = RERANK_TOP
     rerank_response = client.voyage.rerank(
         query=query,
         documents=doc_texts,
-        model=RERANK_MODEL,
+        model=Config.RERANK_MODEL,
         top_k=top_k,
     )
 
@@ -84,12 +78,12 @@ def _rerank_documents(query: str, documents: list[dict], top_k: int = RERANK_TOP
     return reranked_docs
 
 
-def _filter_documents(documents: list[dict], threshold: float = RERANK_SCORE_THRESHOLD) -> list[dict]:
+def _filter_documents(documents: list[dict], threshold: float = Config.RERANK_SCORE_THRESHOLD) -> list[dict]:
     """Filter documents below relevance threshold"""
     return [doc for doc in documents if doc.get('relevance_score', 0) >= threshold]
 
 
-def _search_documents(query: str, top_k: int = RERANK_TOP_K) -> list[dict]:
+def _search_documents(query: str, top_k: int = Config.RERANK_TOP_K) -> list[dict]:
     """
     Complete RAG retrieval pipeline:
     1. Embed query
@@ -99,7 +93,7 @@ def _search_documents(query: str, top_k: int = RERANK_TOP_K) -> list[dict]:
     5. Return top_k documents
     """
     query_embedding = _get_embedding(query)
-    initial_docs = _vector_search(query_embedding, k=VECTOR_SEARCH_K)
+    initial_docs = _vector_search(query_embedding, k=Config.VECTOR_SEARCH_K)
     reranked_docs = _rerank_documents(query, initial_docs)
     filtered_docs = _filter_documents(reranked_docs)
     return filtered_docs[:top_k]
@@ -123,7 +117,7 @@ def _format_as_markdown(docs: list[dict]) -> str:
 
 
 @mcp.tool()
-def search_pangenome_literature(query: str, top_k: int = RERANK_TOP_K) -> str:
+def search_pangenome_literature(query: str, top_k: int = Config.RERANK_TOP_K) -> str:
     """
     Search PanKB's scientific knowledge base about microbial pangenomics.
 

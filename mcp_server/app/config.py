@@ -38,6 +38,13 @@ class Config:
     VECTOR_DB_NAME = "pankb_llm"
     VECTOR_COLLECTION = "pankb_vector_store_v2" 
 
+    EMBEDDING_MODEL = "voyage-4-large"
+    EMBEDDING_DIMENSIONS = 1024
+    RERANK_MODEL = "rerank-2.5"
+    RERANK_SCORE_THRESHOLD = 0.45
+    VECTOR_SEARCH_K = 30  # candidates fetched from the vector index
+    RERANK_TOP_K = 20     # kept after reranking; also the tool's default top_k
+
     # Azure Blob Storage
     AZURE_BLOB_BASE_URL = os.getenv("AZURE_BLOB_BASE_URL")
 
