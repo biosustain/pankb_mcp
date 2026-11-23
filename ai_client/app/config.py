@@ -7,3 +7,5 @@ MAX_OUTPUT_TOKENS = 2_000 # need to enlarge if enable model reasoning
 # A turn = one user message plus its tool calls, tool results and the reply;
 # older turns are dropped whole (still shown in the UI and saved to the DB).
 MAX_HISTORY_TURNS = 8
+# Max messages one user may send in any rolling 24 hours. 
+MAX_DAILY_MESSAGES = 50

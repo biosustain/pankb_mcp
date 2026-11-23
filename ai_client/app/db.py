@@ -188,6 +188,21 @@ def record_token_usage(
             conn.commit()
 
 
+def count_recent_messages(user_id: str, hours: int = 24) -> int:
+    """Number of messages the user had answered in the last `hours` hours."""
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM token_usage
+                WHERE user_id = %s AND created_at > NOW() - make_interval(hours => %s)
+                """,
+                (user_id, hours)
+            )
+            return cur.fetchone()[0]
+
+
 def get_user_token_stats(user_id: str) -> dict:
     """Get total token usage stats for a user"""
     with get_db_connection() as conn:

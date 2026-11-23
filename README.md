@@ -117,7 +117,7 @@ Behaviour settings are git-tracked and are not read from environment
 variables; change them with a commit:
 
 - [`ai_client/app/config.py`](ai_client/app/config.py) — model, prompt
-  version, agent iteration cap, input/output limits, history turns.
+  version, agent iteration cap, input/output limits, history turns, daily message limit.
 - [`mcp_server/app/config.py`](mcp_server/app/config.py) — RAG embedding and
   rerank models, score threshold, retrieval sizes, collection names.
 

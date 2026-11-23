@@ -8,8 +8,9 @@ import uuid
 from pathlib import Path
 
 import streamlit as st
-from config import MAX_INPUT_CHARS, MODEL
+from config import MAX_DAILY_MESSAGES, MAX_INPUT_CHARS, MODEL
 from db import (
+    count_recent_messages,
     generate_conversation_title,
     get_conversation,
     get_or_create_user,
@@ -256,8 +257,26 @@ async def process_chat(
     return llm_text, tool_calls, usage
 
 
+def daily_limit_reached() -> bool:
+    """True once the user has used MAX_DAILY_MESSAGES in the last 24 hours.
+    """
+    if not st.session_state.db_user:
+        return False
+    try:
+        return count_recent_messages(st.session_state.db_user["id"]) >= MAX_DAILY_MESSAGES
+    except Exception:
+        return False
+
+
 # User input
 if prompt := st.chat_input("What species are included in PanKB?", max_chars=MAX_INPUT_CHARS):
+    if daily_limit_reached():
+        st.warning(
+            f"You have reached the limit of {MAX_DAILY_MESSAGES} messages per 24 hours. "
+            "Please try again later."
+        )
+        st.stop()
+
     display_prompt = prompt  # What user sees
     if st.session_state.get("literature_mode", False):
         user_prompt = f"[search_pangenome_literature] {prompt}"
@@ -286,17 +305,11 @@ if prompt := st.chat_input("What species are included in PanKB?", max_chars=MAX_
 
         text_placeholder.markdown(llm_text)
 
-    # Save conversation and record token usage
+    # Record token usage and save the conversation. Usage goes first and on its
+    # own, because the daily message limit is counted from these rows.
     if st.session_state.db_user and st.session_state.client:
-        try:
-            save_conversation(
-                user_id=st.session_state.db_user["id"],
-                conversation_id=st.session_state.conversation_id,
-                messages=st.session_state.client.messages,
-                openai_client=get_sync_openai_client()
-            )
-            # Record token usage if available
-            if usage:
+        if usage:
+            try:
                 record_token_usage(
                     user_id=st.session_state.db_user["id"],
                     tokens_in=usage["tokens_in"],
@@ -304,6 +317,15 @@ if prompt := st.chat_input("What species are included in PanKB?", max_chars=MAX_
                     model=MODEL,
                     conversation_id=st.session_state.conversation_id
                 )
+            except Exception:
+                pass
+        try:
+            save_conversation(
+                user_id=st.session_state.db_user["id"],
+                conversation_id=st.session_state.conversation_id,
+                messages=st.session_state.client.messages,
+                openai_client=get_sync_openai_client()
+            )
         except Exception:
             pass
 

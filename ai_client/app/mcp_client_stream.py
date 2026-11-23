@@ -338,14 +338,6 @@ class MCPClient:
                         self.messages.append({"role": "assistant", "content": full_content})
                         final_output = full_content
 
-                    # Yield usage event at the end of the response
-                    # We only recorded the final round of token usage here, but token captured by phoenix is correct
-                    if usage_info:
-                        yield AgentEvent(
-                            type="usage",
-                            tokens_in=usage_info["input_tokens"],
-                            tokens_out=usage_info["output_tokens"]
-                        )
                     otel_context.detach(iter_token)
                     iter_span.end()
                     break
@@ -353,6 +345,11 @@ class MCPClient:
                     otel_context.detach(iter_token)
                     iter_span.end()
                     raise
+
+            # One usage event per user turn, covering every model call in it
+            # (including turns that stop at the iteration cap).
+            if total_tokens_in or total_tokens_out:
+                yield AgentEvent(type="usage", tokens_in=total_tokens_in, tokens_out=total_tokens_out)
         finally:
             agent_span.set_attribute("agent.iterations_used", iterations_used)
             agent_span.set_attribute("agent.total_tool_calls", total_tool_calls)
